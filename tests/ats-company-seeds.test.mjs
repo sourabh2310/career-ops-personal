@@ -31,6 +31,9 @@ check(parseAtsCompanyCsv('name,url\nAcme,acme', 'greenhouse').length === 0, 'rej
 check(parseAtsCompanyCsv('name,slug,url\nAcme,acme,http://job-boards.greenhouse.io/acme', 'greenhouse').length === 0, 'rejects non-HTTPS URLs');
 check(parseAtsCompanyCsv('name,slug,url\nAcme,acme,https://jobs.lever.co/acme', 'greenhouse').length === 0, 'rejects URLs hosted on a different ATS');
 check(!isTrustedAtsCompanyUrl('workday', 'https://myworkdayjobs.com/company'), 'rejects a non-tenant Workday host');
+const workday = parseAtsCompanyCsv('name,slug,url\nAcme,acme/external,https://acme.wd5.myworkdayjobs.com/external', 'workday');
+check(workday.length === 1 && workday[0]?.slug === 'acme/external', 'accepts validated Workday tenant/site identifiers');
+check(parseAtsCompanyCsv('name,slug,url\nAcme,../external,https://acme.wd5.myworkdayjobs.com/external', 'workday').length === 0, 'rejects traversal in Workday identifiers');
 check(parseAtsCompanyCsv('name,slug,url\nAcme,acme,https://jobs.lever.co/acme', 'not-supported').length === 0, 'rejects unsupported ATS source');
 try {
   parseCsvRows('name,slug,url\n"unterminated,acme,https://job-boards.greenhouse.io/acme');
