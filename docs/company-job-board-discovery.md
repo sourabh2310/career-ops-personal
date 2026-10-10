@@ -78,7 +78,7 @@ The first version uses ordinary HTTP inspection and existing Career Ops network/
 ## Test
 
 ~~~bash
-node --test tests/company-job-discovery.test.mjs
+node test-all.mjs --only company-job-discovery
 ~~~
 
 The tests exercise CSV handling, CLI argument parsing, and candidate scoring without making live web requests.
