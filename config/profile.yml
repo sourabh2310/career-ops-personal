@@ -1,0 +1,41 @@
+# Sourabh's candidate profile
+# Personalization from the supplied resume. Review all details before applying.
+# No salary, work-authorization, sponsorship, city, or profile URLs have been inferred.
+
+candidate:
+  full_name: "Sourabh Kumar Patel"
+  title: "Java Backend Developer"
+  email: "sourabhark.2308@gmail.com"
+  phone: "+918085231098"
+
+target_roles:
+  primary:
+    - "Java Backend Developer"
+    - "Backend Software Engineer"
+    - "Spring Boot Developer"
+    - "Microservices Engineer"
+  archetypes:
+    - name: "Java Backend Developer"
+      level: "Mid-level"
+      fit: "primary"
+    - name: "Backend Software Engineer"
+      level: "Mid-level"
+      fit: "primary"
+    - name: "Spring Boot / Microservices Engineer"
+      level: "Mid-level"
+      fit: "primary"
+
+narrative:
+  headline: "Java Backend Developer | Spring Boot | Microservices | Kafka | PostgreSQL"
+  superpowers:
+    - "Java and Spring Boot backend development"
+    - "REST API design and microservices"
+    - "Kafka event ingestion and background processing"
+    - "SQL/database troubleshooting and query optimization"
+    - "Caching with Redis and automated testing"
+
+language:
+  output: en
+
+# Prefer free/local model workflows. The exact model depends on the CLI configured locally.
+spend_tier: economy

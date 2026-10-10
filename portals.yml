@@ -1,0 +1,34 @@
+# Sourabh's job discovery configuration.
+# No location_filter is set intentionally: search India plus international roles.
+# The scanner is manual-only; no scheduled scan or application submission is configured.
+
+title_filter:
+  positive:
+    - "Java Backend Developer"
+    - "Java Developer"
+    - "Backend Engineer"
+    - "Backend Software Engineer"
+    - "Software Engineer"
+    - "Spring Boot"
+    - "Microservices Engineer"
+  negative:
+    - "word:Intern"
+    - "word:Interns"
+    - "Internship"
+  seniority_boost:
+    - "Mid-level"
+    - "Senior"
+    - "Lead"
+
+search_queries:
+  - name: "Java backend roles in India"
+    query: '("Java Backend Developer" OR "Java Developer" OR "Backend Engineer" OR "Spring Boot Developer") (India OR Bengaluru OR Hyderabad OR Pune OR Chennai OR Mumbai OR Delhi) (site:boards.greenhouse.io OR site:job-boards.greenhouse.io OR site:jobs.lever.co OR site:jobs.ashbyhq.com)'
+    enabled: true
+
+  - name: "International and remote Java backend roles"
+    query: '("Java Backend Developer" OR "Backend Engineer" OR "Spring Boot" OR "Microservices Engineer") (remote OR "remote worldwide" OR "work from anywhere" OR relocation) (site:boards.greenhouse.io OR site:job-boards.greenhouse.io OR site:jobs.lever.co OR site:jobs.ashbyhq.com)'
+    enabled: true
+
+  - name: "International company career pages"
+    query: '("Java Backend Developer" OR "Backend Software Engineer" OR "Spring Boot") (careers OR jobs) (remote OR India OR relocation)'
+    enabled: true
