@@ -1621,6 +1621,15 @@ search_queries:
 #   max_pages: 120                        # optional page cap (default 120, max 500)
 #   enabled: true
 #
+# - name: freehire                        # open-source IT-job catalogue (MIT), crawled
+#   provider: freehire                    # from company career pages; keyless public API
+#   keywords: ["java backend", "spring boot"]  # optional — one server-side full-text
+#                                         # query per value, deduped by URL; omit for
+#                                         # the whole catalogue newest-first
+#   max_pages: 20                         # optional page cap per query (100 rows/page,
+#                                         # default 20, max 100)
+#   enabled: true
+#
 # Comeet needs the full careers-api URL (it carries a per-tenant token that a
 # branded careers page does not expose), so set it via the api: field — e.g.:
 #

@@ -34,6 +34,46 @@ import { DEFAULT_USER_AGENT } from '../user-agent.mjs';
  */
 export const SLUG_RE = /^[A-Za-z0-9._-]+$/;
 
+/**
+ * Strict charset for Workday tenant/site segments. Mirrors WORKDAY_SEGMENT_RE
+ * in discover-ats.mjs and the `[\w-]+` coordinates in providers/workday.mjs:
+ * alphanumerics, underscore, and hyphen only — no dots. Excluding dots is what
+ * closes the traversal hole: with SLUG_RE (which permits dots) a segment equal
+ * to `..` passes validation, so `../external` and `acme/..` were accepted.
+ */
+export const WORKDAY_SEGMENT_RE = /^[A-Za-z0-9_-]+$/;
+
+/**
+ * Validate a Workday `tenant/site` identifier from untrusted CSV input.
+ * Requires exactly two nonempty segments, each passing WORKDAY_SEGMENT_RE.
+ * The charset excludes `%`, `/`, `\`, `?`, `#`, and `.`, so URL-encoded
+ * (`%2e`), backslash, query/fragment, and dot-segment (`..`, `.`) syntax is
+ * rejected without needing a separate denylist.
+ * @param {unknown} slug
+ * @returns {boolean}
+ */
+export function isValidWorkdayIdentifier(slug) {
+  if (typeof slug !== 'string') return false;
+  const parts = slug.split('/');
+  if (parts.length !== 2) return false;
+  return parts.every(part => WORKDAY_SEGMENT_RE.test(part));
+}
+
+/**
+ * Suffix-host check requiring a real tenant prefix: the host must be longer
+ * than the bare suffix (so the vendor apex itself is rejected) and the prefix
+ * must not be empty or contain an empty DNS label.
+ * @param {string} host  Lowercased hostname from URL parsing.
+ * @param {string} suffix  Leading-dot suffix, e.g. '.myworkdayjobs.com'.
+ * @returns {boolean}
+ */
+function hasTenantPrefix(host, suffix) {
+  if (!host.endsWith(suffix)) return false;
+  const prefix = host.slice(0, -suffix.length);
+  if (!prefix || prefix.endsWith('.') || prefix.includes('..')) return false;
+  return true;
+}
+
 const DEFAULT_TIMEOUT_MS = 20_000;
 
 // Runaway guard for the YC pagination walk, NOT the stop condition: the walk
@@ -470,9 +510,9 @@ export function isTrustedAtsCompanyUrl(ats, rawUrl) {
     greenhouse: h => h === 'job-boards.greenhouse.io',
     lever: h => h === 'jobs.lever.co',
     ashby: h => h === 'jobs.ashbyhq.com',
-    workday: h => h.endsWith('.myworkdayjobs.com'),
-    icims: h => h.endsWith('.icims.com'),
-    bamboohr: h => h.endsWith('.bamboohr.com'),
+    workday: h => hasTenantPrefix(h, '.myworkdayjobs.com'),
+    icims: h => hasTenantPrefix(h, '.icims.com'),
+    bamboohr: h => hasTenantPrefix(h, '.bamboohr.com'),
   };
   return Boolean(allowed[ats]?.(host));
 }
@@ -502,9 +542,10 @@ export function parseAtsCompanyCsv(csv, ats) {
     const slug = String(cells[slugAt] ?? '').trim();
     const url = String(cells[urlAt] ?? '').trim();
     // Workday identifiers commonly encode tenant/site as "tenant/site".
-    // Validate each segment independently; never permit arbitrary path syntax.
+    // Validate each segment against the strict no-dots charset; never permit
+    // arbitrary path syntax (SLUG_RE permits dots, so `..` would pass it).
     const validSlug = ats === 'workday'
-      ? slug.split('/').length === 2 && slug.split('/').every(part => SLUG_RE.test(part))
+      ? isValidWorkdayIdentifier(slug)
       : SLUG_RE.test(slug);
     if (!name || !slug || !validSlug || seen.has(slug.toLowerCase())) continue;
     if (!isTrustedAtsCompanyUrl(ats, url)) continue;
