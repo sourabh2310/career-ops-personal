@@ -5,8 +5,8 @@
 Independently verify the wave's combined output against every cell's
 acceptance criteria — including the Revision 2 gates: starter config is
 complete yet unapplied, no paid dependency exists, seed/overlay separation
-holds, the three source verdicts are separate rows, and the dirty work is
-untouched.
+holds, the three source verdicts are separate rows, landed code is unmodified,
+and no parallel live-discovery engine was built.
 
 ## Scope
 
@@ -40,9 +40,14 @@ untouched.
 - Every acceptance criterion of cells 2–4 has at least one corresponding
   validation test or a documented reason it cannot be tested offline.
 - Wave-gate checks: (i) `git status` in the worktree shows no `portals.yml`
-  created; (ii) no `APIFY_TOKEN`/keyed provider in the starter or code;
-  (iii) original checkout's dirty files byte-identical to the Gate 1
-  DIRTY-WORK.md record; (iv) three separate source verdicts present.
+  created and no live discovery outputs (`data/company-job-boards.csv`,
+  `data/cache/company-job-discovery.json` absent — fixtures only);
+  (ii) no `APIFY_TOKEN`/keyed provider in the starter or code;
+  (iii) worktree base matches cell-1 `TREE-BASELINE.md` (base commit present,
+  landed ats-seeds/freehire/discovery commits present, no uncommitted
+  changes outside wave-owned paths); (iv) three separate source verdicts
+  present; (v) no new live-discovery engine (no new files performing live
+  company→board discovery outside the landed tool).
 - Full-suite (or affected-suite) run is green; REPORT.md records exact
   commands, commit hash tested, and any skips with justification.
 - Zero diffs outside `tests/mece-wave/` and the cell dir.

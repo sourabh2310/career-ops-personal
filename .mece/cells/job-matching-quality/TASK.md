@@ -30,8 +30,7 @@ inside it (city names, "India"/"Remote, India" phrasing, eligibility signals).
   (structured location field only; missing data never penalized),
   `modes/_shared.md` scoring + `modes/oferta.md` Blocks A–F (read-only reference),
   `config/profile.yml` + `cv.md` (candidate ground truth — read, don't rewrite
-  without approval), `modes/hi/` (India vocabulary; `modes_dir` unset — flag
-  the modes-selection question, do not switch it).
+  without approval), `modes/hi/` (India vocabulary; `modes_dir` stays unset per D2 — record the EN-default rationale in DECISIONS.md, do not switch it).
 
 ## Permitted
 
@@ -40,9 +39,11 @@ inside it (city names, "India"/"Remote, India" phrasing, eligibility signals).
   (Java-backend corpus: Spring Boot, Kafka, microservices titles; India
   location strings; 3–5 yr experience bands).
 - Write `.mece/cells/job-matching-quality/STARTER-PORTALS.yml`: the COMPLETE
-  starter configuration design (filters + companies + free providers only),
-  `ACTIVATION-CHECKLIST.md` (user-executed activation steps), and
-  `DECISIONS.md` (EN-default rationale, pending-upstream freehire note).
+   starter configuration design (filters + companies + free providers only),
+   `ACTIVATION-CHECKLIST.md` (user-executed activation steps: starter review
+   PLUS the discovery pilot — `data/company-names.csv` → `--limit` run →
+   review `data/company-job-boards.csv`), and
+   `DECISIONS.md` (EN-default rationale, freehire-as-landed note).
   Never write `portals.yml` directly.
 
 ## Prohibited

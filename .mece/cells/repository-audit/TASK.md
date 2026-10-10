@@ -18,10 +18,14 @@ Read-only inspection of: repo root layout, `ARCHITECTURE.md`, `DATA_CONTRACT.md`
 
 - ~100 provider modules in `providers/`; confirm exact count of non-helper
   modules and the registration mechanism (auto-discovered vs registry edit).
-- `portals.yml` absent; `data/pipeline.md` empty; no tracker, no scan-history.
+- `portals.yml` absent; `data/pipeline.md` template-only; no tracker, no scan-history.
 - No LinkedIn/Naukri provider (only liveness rung, `linkedin-join.mjs`,
   telegram link targets, apify/Gmail plugins, `modes/hi` prompts).
-- Dirty tree on branch `phase-2/ats-company-seeds` (freehire + ats-seeds work).
+- Base is clean `main` @ `d477566c`: former ATS-seeds/freehire work LANDED
+  (`d8de1f90`, PR #4 — `providers/freehire.mjs`, hardened `seeds/vc-portfolios.mjs`);
+  company-job-board-discovery LANDED (PR #5 — `discover-company-jobs.mjs`,
+  `lib/company-job-discovery.mjs`, `npm run discover:companies`). Record their
+  hashes/paths as reference, not as collisions.
 - Confirm the exact command to run a SINGLE test suite (needed by cells 2–5).
 
 ## Permitted
@@ -43,9 +47,10 @@ Read-only inspection of: repo root layout, `ARCHITECTURE.md`, `DATA_CONTRACT.md`
 - `.mece/cells/repository-audit/TEST-RUNBOOK.md`: exact single-suite test
   command + full-suite command, provider-registration mechanism, portals entry
   schema (fields observed in `templates/portals.example.yml`).
-- `.mece/cells/repository-audit/DIRTY-WORK.md`: read-only record of
-  pre-existing uncommitted work (files, `git diff --stat`, relation to wave
-  ownership) so Gate 0 isolation can be verified against it.
+- `.mece/cells/repository-audit/TREE-BASELINE.md`: read-only record of the
+  Gate 0 base — base commit hash, `git status --porcelain` output proving a
+  clean tree, and the hashes/paths of relevant landed work (ats-seeds/freehire
+  `d8de1f90`, discovery PR #5 merge) so later gates can verify against it.
 - `.mece/cells/repository-audit/OWNERSHIP-MAP.md`: confirmed per-file
   ownership table for cells 2–5 (feeds the Gate 2 boundary sign-off).
 
@@ -67,8 +72,8 @@ Read-only inspection of: repo root layout, `ARCHITECTURE.md`, `DATA_CONTRACT.md`
 
 - None (first cell). Assumption: `providers/` modules are auto-registered;
   if a registry edit is required, document it — cells 2–4 depend on this answer.
-- Runs in the Gate 0 worktree AND records the original checkout's dirty state
-  read-only (never touches, stages, or carries over dirty files).
+- Runs in the Gate 0 worktree AND verifies the base there is clean at the
+  approved commit (never stages, commits, or carries user-layer writes).
 
 ## File ownership
 

@@ -39,7 +39,8 @@ verdict is an acceptable terminal result for any source.
   fixtures (no live network in tests).
 - Append rows for NEW boards only at END OF TABLE in
   `docs/SUPPORTED_JOB_BOARDS.md` (including "Evaluated, not supported" rows
-  on negative findings). MUST NOT touch the uncommitted freehire row.
+  on negative findings). NEVER edit existing rows (the freehire row is
+  committed on `main`).
 
 ## Prohibited
 
@@ -79,14 +80,15 @@ verdict is an acceptable terminal result for any source.
 
 - Depends on cell 1 (test runbook, registration mechanism, entry schema).
 - Assumption: provider modules are auto-discovered; if not, escalate.
-- In-flight `providers/freehire.mjs` (untracked, same area) — coordinate, do
-  not duplicate or overwrite; rebase onto landed work.
+- `providers/freehire.mjs` is LANDED on `main` (ordinary existing provider):
+  treat as reference coverage for catalogue-style discovery; do not duplicate
+  it and do not modify it (existing-provider rule above).
 
 ## File ownership
 
 - OWNS: NEW `providers/linkedin-*.mjs`, NEW `providers/naukri-*.mjs`, other NEW
   `providers/*.mjs`, NEW `tests/providers/<new>.test.mjs`, appended new-board
   rows in `docs/SUPPORTED_JOB_BOARDS.md`.
-- MUST NOT MODIFY: existing providers (incl. uncommitted `freehire.mjs`),
+- MUST NOT MODIFY: existing providers (incl. landed `freehire.mjs`),
   `scan*.mjs`, registry, modes, portals, user data, `test-all.mjs`,
-  the freehire doc row.
+  existing doc rows.

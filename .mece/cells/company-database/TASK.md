@@ -8,24 +8,38 @@ opportunities while retaining promising `unverified` companies; (b) a
 clearly separated local enrichment overlay in `data/` (gitignored user
 layer). Every record carries provenance, confidence, and verification
 timestamps. NO mass crawl and NO live enrichment runs in this wave:
-schema + seed + validation + dry-run flow only.
+schema + seed + validation + dry-run flow only. Enrichment input is the
+LANDED discovery tool's CSV output — this cell builds NO live-discovery code.
 
-## Revision 2 constraints (binding)
+## Revision 3 constraints (binding)
 
-- `seeds/vc-portfolios.mjs` (dirty, in-flight) is READ-ONLY reference.
+- `seeds/vc-portfolios.mjs` (LANDED on `main`) is READ-ONLY reference.
   MUST NOT be modified, extended, or rewritten by this cell.
+- `discover-company-jobs.mjs` / `lib/company-job-discovery.mjs` (LANDED on
+  `main`) are READ-ONLY reference. This cell MUST NOT build a parallel
+  live-discovery engine and MUST NOT modify the discovery engine; engine
+  changes require Gate 2 escalation. New `seeds/*india*.mjs` code is limited
+  to seed schema/validation, discovery-CSV→seed conversion, and dry-run
+  preview helpers (fixture data only — never a live run).
 - The conservative enrichment policy in `WAVE.md` (pacing, timeouts, backoff,
   fail-open; robots.txt necessary-but-not-sufficient) governs any future
   enrichment helper — this wave only dry-runs.
-- freehire/ats-seeds work is pending-upstream: reference, never duplicate.
 
 ## Findings / files to inspect
 
-- `seeds/vc-portfolios.mjs` + `seeds/README.md` (YC/a16z/ats-scrapers import),
-  `scan-ats-full.mjs` (ATS directory sweep), `discover-ats.mjs`,
+- `seeds/vc-portfolios.mjs` + `seeds/README.md` (YC/a16z/ats-scrapers import,
+  LANDED), `scan-ats-full.mjs` (ATS directory sweep), `discover-ats.mjs`,
   `discover-new-companies.mjs`, `company-history.mjs` (read-only evidence card),
   `templates/portals.example.yml` (entry schema: no provenance/confidence
   fields today), `data/` (no master DB exists; `portals.yml` absent).
+- Landed discovery tool to reuse (read-only): `discover-company-jobs.mjs` +
+  `lib/company-job-discovery.mjs` — input `data/company-names.csv`, output
+  `data/company-job-boards.csv` columns: `company_name`, `official_domain`,
+  `career_homepage_url`, `job_listing_url`, `ats_platform`,
+  `confidence_score`, `verification_status`, `india_relevance`, `evidence`,
+  `last_checked_at`, `search_source`. Cell 3 maps THESE columns into seed
+  records (provenance = tool + evidence string; `verified_at` =
+  `last_checked_at` for `Verified` rows, else explicit `unverified`).
 - Plan-time gaps to confirm: no canonical company record, duplicates handled
   only by dedup heuristics, stale links via unrun `verify-portals`/`audit-portals`.
 
@@ -38,21 +52,28 @@ schema + seed + validation + dry-run flow only.
 - Document the local overlay (`data/companies.local.yml`, gitignored user
   layer, same schema, overlay-wins) in SCHEMA.md; do NOT commit sample
   enrichment output.
-- Create NEW `seeds/*india*.mjs` seed/enrichment helpers (fixture-tested;
-  dry-run/preview output only).
+- Create NEW `seeds/*india*.mjs` seed helpers (fixture-tested;
+  dry-run/preview output only): seed schema + validator, and a
+  discovery-CSV→seed converter mapping the landed tool's columns (above) to
+  seed records. NO live fetching, NO new discovery engine.
 - Modify `discover-new-companies.mjs`, `discover-ats.mjs` to read/emit the
-  new schema (preview/dry-run output only — never `--write` to `portals.yml`).
+  new schema (preview/dry-run output only — never `--write` to `portals.yml`,
+  never a live discovery run).
 - Add NEW `tests/discover-india-*.test.mjs`, `tests/seeds-india-*.test.mjs`
   (new files only; do not edit existing discover/seed suites).
 
 ## Prohibited
 
-- No large discovery crawl; no live enrichment runs writing to datasets.
+- No large discovery crawl; no live enrichment or live discovery runs
+  (the landed tool is NEVER executed by this cell — fixtures/sample CSV only).
 - No edits to `portals.yml` (absent — do not create it), existing company
-  rows anywhere, `providers/`, `scan*.mjs`, `company-history.mjs` core logic.
+  rows anywhere, `providers/`, `scan*.mjs`, `company-history.mjs` core logic,
+  or the landed discovery engine (`discover-company-jobs.mjs`,
+  `lib/company-job-discovery.mjs`).
 - No guessing official URLs or India presence — every record carries evidence
-  or an explicit `unverified` status. No overwriting the in-flight
-  `seeds/vc-portfolios.mjs` work; rebase/extend, don't collide.
+  (for converted rows: the discovery tool's `evidence` + `last_checked_at`)
+  or an explicit `unverified` status. No overwriting landed
+  `seeds/vc-portfolios.mjs`; extend via new files, don't collide.
 - No secrets, no authenticated fetches, no `opencode run`, no subagents.
 
 ## Deliverables
@@ -61,7 +82,8 @@ schema + seed + validation + dry-run flow only.
   employers with India presence; each with evidence links).
 - Deduplication rule (canonical name + aliases + multi-URL handling) documented
   in `.mece/cells/company-database/SCHEMA.md`.
-- Dry-run preview output showing seed → candidate → portals-entry flow.
+- Dry-run preview output showing discovery-CSV-row → seed-record →
+  portals-entry flow (from fixture/sample CSV rows — never a live tool run).
 
 ## Acceptance criteria
 
@@ -86,16 +108,17 @@ schema + seed + validation + dry-run flow only.
 
 ## Dependencies / assumptions
 
-- Depends on cell 1 (runbook, entry schema).
-- External: branch `phase-2/ats-company-seeds` lands first, or explicit rebase
-  onto the dirty tree. Placement of `data/companies.*` (gitignored user layer
-  vs committed seed) needs user answer (SYNTHESIS Q4).
+- Depends on cell 1 (runbook, entry schema) + Gate 2 sign-off. The former
+  "ats-seeds lands first" external dependency is SATISFIED (landed on `main`).
+- Seed vs overlay placement is FIXED by D4 (committed seed + gitignored
+  overlay in `data/`) — no open placement question remains.
 
 ## File ownership
 
 - OWNS: `seeds/companies-india.yml` (new), NEW `seeds/*india*.mjs`,
   `discover-new-companies.mjs`, `discover-ats.mjs`,
   NEW `tests/discover-india-*.test.mjs`, NEW `tests/seeds-india-*.test.mjs`.
-- MUST NOT MODIFY: `seeds/vc-portfolios.mjs`, `providers/` (incl. uncommitted
-  `freehire.mjs`), `scan*.mjs`, `portals.yml`, existing test suites, modes,
-  user profile/CV/tracker.
+- MUST NOT MODIFY: `seeds/vc-portfolios.mjs` (landed), the landed discovery
+  engine (`discover-company-jobs.mjs`, `lib/company-job-discovery.mjs`),
+  `providers/` (incl. landed `freehire.mjs`), `scan*.mjs`, `portals.yml`,
+  existing test suites, modes, user profile/CV/tracker.
