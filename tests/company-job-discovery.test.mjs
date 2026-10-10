@@ -26,7 +26,7 @@ test('parseCsv rejects an unterminated quoted field', () => {
 
 test('toCsv safely quotes values containing commas, quotes and newlines', () => {
   const csv = toCsv([{ company_name: 'Example, Inc.', evidence: 'said "hello"\nagain' }], ['company_name', 'evidence']);
-  assert.equal(csv, '"company_name",evidence\r\n"Example, Inc.","said ""hello""\nagain"\r\n');
+  assert.equal(csv, 'company_name,evidence\r\n"Example, Inc.","said ""hello""\nagain"\r\n');
 });
 
 test('parseArgs supports equals syntax and rejects unknown flags', () => {
