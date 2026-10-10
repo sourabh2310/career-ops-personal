@@ -501,7 +501,12 @@ export function parseAtsCompanyCsv(csv, ats) {
     const name = String(cells[nameAt] ?? '').trim();
     const slug = String(cells[slugAt] ?? '').trim();
     const url = String(cells[urlAt] ?? '').trim();
-    if (!name || !slug || !SLUG_RE.test(slug) || seen.has(slug.toLowerCase())) continue;
+    // Workday identifiers commonly encode tenant/site as "tenant/site".
+    // Validate each segment independently; never permit arbitrary path syntax.
+    const validSlug = ats === 'workday'
+      ? slug.split('/').length === 2 && slug.split('/').every(part => SLUG_RE.test(part))
+      : SLUG_RE.test(slug);
+    if (!name || !slug || !validSlug || seen.has(slug.toLowerCase())) continue;
     if (!isTrustedAtsCompanyUrl(ats, url)) continue;
     seen.add(slug.toLowerCase());
     out.push({ name, slug, url, careers_url: url, ats, ats_id: slug, source: 'ats-scrapers' });
