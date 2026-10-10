@@ -601,7 +601,7 @@ export function keepAndMaybeEmit(job, source, sink, blacklist, opts) {
 // ATS providers that can auto-detect from a careers_url, in probe order.
 // Workday is excluded: its URL format requires a tenant|instance|site triple
 // that can't be derived from a portfolio slug alone.
-const SEED_PROVIDERS = [greenhouse, lever, ashby];
+const SEED_PROVIDERS = [greenhouse, lever, ashby, workday, icims, bamboohr];
 
 /**
  * Scan a VC portfolio seed source and return matching job offers.

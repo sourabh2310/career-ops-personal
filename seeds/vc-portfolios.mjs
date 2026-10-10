@@ -281,9 +281,15 @@ export function parseSeedEntries(payload, source) {
 export function toPortalEntry(company) {
   let careers_url = '';
 
+  // Explicit ATS careers URLs from validated directory imports take priority.
+  // The parser validates the scheme and ATS hostname before setting this field.
+  if (typeof company.careers_url === 'string' && company.careers_url) {
+    careers_url = company.careers_url;
+  }
+
   // Explicit ATS hint from the YC dataset.
   const atsId = company.ats_id && SLUG_RE.test(company.ats_id) ? company.ats_id : null;
-  if (atsId) {
+  if (!careers_url && atsId) {
     if (company.ats === 'greenhouse') {
       careers_url = `https://job-boards.greenhouse.io/${atsId}`;
     } else if (company.ats === 'lever') {
@@ -296,20 +302,13 @@ export function toPortalEntry(company) {
   // No explicit ATS: try Greenhouse by slug (most common for YC companies), then
   // Lever, then Ashby — provider.detect() will confirm or skip at scan time.
   if (!careers_url && company.slug && SLUG_RE.test(company.slug)) {
-    // Use a format that greenhouse.mjs detect() can match.
     careers_url = `https://job-boards.greenhouse.io/${company.slug}`;
   }
 
   // Last resort: company website (ATS may auto-detect from the domain).
-  if (!careers_url) {
-    careers_url = company.url || '';
-  }
+  if (!careers_url) careers_url = company.url || '';
 
-  return {
-    name: company.name,
-    careers_url,
-    source: company.source,
-  };
+  return { name: company.name, careers_url, source: company.source };
 }
 
 // ── Network fetchers ─────────────────────────────────────────────────
@@ -421,6 +420,131 @@ export async function fetchA16zCompanies({ timeoutMs = DEFAULT_TIMEOUT_MS } = {}
   return parseA16zPayload(html);
 }
 
+
+// ── ATS company directory import (MIT-licensed ats-scrapers data) ─────
+
+const ATS_COMPANIES_BASE = 'https://raw.githubusercontent.com/kalil0321/ats-scrapers/main/ats-companies';
+const ATS_COMPANY_FILES = ['greenhouse', 'lever', 'ashby', 'workday', 'icims', 'bamboohr'];
+
+/**
+ * Parse CSV without dependencies, including quoted commas and escaped quotes.
+ * Returns an array of rows; malformed unterminated quotes are rejected.
+ * @param {string} csv
+ * @returns {string[][]}
+ */
+export function parseCsvRows(csv) {
+  if (typeof csv !== 'string' || !csv.trim()) return [];
+  const rows = [];
+  let row = [];
+  let field = '';
+  let quoted = false;
+  for (let i = 0; i < csv.length; i++) {
+    const ch = csv[i];
+    if (quoted) {
+      if (ch === '"' && csv[i + 1] === '"') { field += '"'; i++; }
+      else if (ch === '"') quoted = false;
+      else field += ch;
+    } else if (ch === '"' && field.length === 0) quoted = true;
+    else if (ch === ',') { row.push(field); field = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && csv[i + 1] === '\n') i++;
+      row.push(field);
+      if (row.some(cell => cell.trim())) rows.push(row);
+      row = [];
+      field = '';
+    } else field += ch;
+  }
+  if (quoted) throw new Error('Unterminated quoted field in ATS company CSV');
+  row.push(field);
+  if (row.some(cell => cell.trim())) rows.push(row);
+  return rows;
+}
+
+/** Only accept canonical HTTPS career-board hosts for providers wired into this scanner. */
+export function isTrustedAtsCompanyUrl(ats, rawUrl) {
+  let url;
+  try { url = new URL(rawUrl); } catch { return false; }
+  if (url.protocol !== 'https:' || url.username || url.password) return false;
+  const host = url.hostname.toLowerCase();
+  const allowed = {
+    greenhouse: h => h === 'job-boards.greenhouse.io',
+    lever: h => h === 'jobs.lever.co',
+    ashby: h => h === 'jobs.ashbyhq.com',
+    workday: h => h.endsWith('.myworkdayjobs.com'),
+    icims: h => h.endsWith('.icims.com'),
+    bamboohr: h => h.endsWith('.bamboohr.com'),
+  };
+  return Boolean(allowed[ats]?.(host));
+}
+
+/**
+ * Parse one ats-scrapers company CSV into safe, deduplicated SeedCompany rows.
+ * CSV data is untrusted input: require a valid slug and an HTTPS URL on the
+ * expected ATS host before it can reach a provider.
+ * @param {string} csv
+ * @param {string} ats
+ * @returns {SeedCompany[]}
+ */
+export function parseAtsCompanyCsv(csv, ats) {
+  if (!ATS_COMPANY_FILES.includes(ats)) return [];
+  const rows = parseCsvRows(csv);
+  if (!rows.length) return [];
+  const headers = rows.shift().map(value => value.trim().toLowerCase());
+  const nameAt = headers.indexOf('name');
+  const slugAt = headers.indexOf('slug');
+  const urlAt = headers.indexOf('url');
+  if (nameAt < 0 || slugAt < 0 || urlAt < 0) return [];
+
+  const seen = new Set();
+  const out = [];
+  for (const cells of rows) {
+    const name = String(cells[nameAt] ?? '').trim();
+    const slug = String(cells[slugAt] ?? '').trim();
+    const url = String(cells[urlAt] ?? '').trim();
+    // Workday identifiers commonly encode tenant/site as "tenant/site".
+    // Validate each segment independently; never permit arbitrary path syntax.
+    const validSlug = ats === 'workday'
+      ? slug.split('/').length === 2 && slug.split('/').every(part => SLUG_RE.test(part))
+      : SLUG_RE.test(slug);
+    if (!name || !slug || !validSlug || seen.has(slug.toLowerCase())) continue;
+    if (!isTrustedAtsCompanyUrl(ats, url)) continue;
+    seen.add(slug.toLowerCase());
+    out.push({ name, slug, url, careers_url: url, ats, ats_id: slug, source: 'ats-scrapers' });
+  }
+  return out;
+}
+
+/**
+ * Fetch company directories for ATS providers already supported by scan-ats-full.
+ * No credentials, browser automation, LLM calls, or writes are used.
+ * @param {{ timeoutMs?: number }} [opts]
+ * @returns {Promise<SeedCompany[]>}
+ */
+export async function fetchAtsScraperCompanies({ timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+  const groups = await Promise.all(ATS_COMPANY_FILES.map(async ats => {
+    const url = `${ATS_COMPANIES_BASE}/${ats}.csv`;
+    let csv;
+    try {
+      const res = await fetchWithTimeout(url, { timeoutMs });
+      csv = await res.text();
+    } catch (err) {
+      throw new Error(`ats-scrapers: ${ats}.csv fetch failed — ${err.message}`);
+    }
+    const parsed = parseAtsCompanyCsv(csv, ats);
+    if (csv.trim() && parsed.length === 0) {
+      throw new Error(`ats-scrapers: ${ats}.csv returned no valid rows; refusing silent empty import`);
+    }
+    return parsed;
+  }));
+  const seen = new Set();
+  return groups.flat().filter(company => {
+    const key = `${company.ats}:${company.slug.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 // ── SEED_SOURCES registry ────────────────────────────────────────────
 
 /**
@@ -441,5 +565,9 @@ export const SEED_SOURCES = {
   a16z: {
     fetch: fetchA16zCompanies,
     label: 'Andreessen Horowitz (a16z) Portfolio',
+  },
+  'ats-scrapers': {
+    fetch: fetchAtsScraperCompanies,
+    label: 'MIT-licensed ATS company directories (Greenhouse, Lever, Ashby, Workday, iCIMS, BambooHR)',
   },
 };

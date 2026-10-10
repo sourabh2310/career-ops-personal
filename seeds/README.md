@@ -30,6 +30,9 @@ node scan-ats-full.mjs --seeds yc --since 7
 # Seed from both YC and a16z, dry-run preview
 node scan-ats-full.mjs --seeds yc,a16z --dry-run
 
+# Import broad public ATS company directories (MIT-licensed ats-scrapers data)
+node scan-ats-full.mjs --seeds ats-scrapers --since 7 --dry-run
+
 # Combine seeds + regular ATS sources
 node scan-ats-full.mjs --seeds yc --ats greenhouse,lever --since 5
 
@@ -68,6 +71,7 @@ for (const [id, source] of Object.entries(SEED_SOURCES)) {
 
 - **YC**: Fetches up to 3 pages × 1000 companies. Covers all public YC batches.
 - **a16z**: Parses the public portfolio page. Falls back gracefully if the page structure changes.
+- **ats-scrapers**: Imports public CSV company directories for Greenhouse, Lever, Ashby, Workday, iCIMS, and BambooHR from the MIT-licensed `kalil0321/ats-scrapers` repository. Rows are accepted only when the slug is safe and the HTTPS URL uses that ATS's expected host. Workday's `tenant/site` identifiers are validated segment by segment. No source code is copied or vendored.
 
 ## Security
 
